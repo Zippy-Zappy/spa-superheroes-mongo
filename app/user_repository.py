@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Optional
 from mongo_connection import SuperheroesDatabase
+from bson.objectid import ObjectId
 
 class UserRepository:
 
@@ -11,7 +12,7 @@ class UserRepository:
     def __init__(self, house : House):
         self.collection = SuperheroesDatabase.get_db()[house.value]
     
-    def insert(self, hero : str, name : str = "", 
+    def insert_hero(self, hero : str, name : str = "", 
                year : int = 0, bio : str = "", 
                items : Optional[list[str]] = None, 
                images : Optional[list[str]] = None):
@@ -37,3 +38,27 @@ class UserRepository:
 
         result = self.collection.insert_one(document)
         return result.inserted_id
+    
+    def get_hero_by_name(self, hero : str) -> str:
+        if hero.isspace():
+            return f"Must input hero name."
+        result = self.collection.find_one({"hero": hero})
+        return ObjectId(result["_id"])
+
+    def get_hero_by_id(self, id : ObjectId):
+        result = self.collection.find_one({"_id": id})
+        return result
+    
+    def update_hero(self, id : ObjectId, 
+                hero : str, name : str, 
+               year : int, bio : str, 
+               items : list[str], 
+               images : list[str]):
+        new_values = {"$set": {"hero": hero, "name": name, "year": year,
+                      "bio": bio, "items": items, "images": images}}
+        result = self.collection.update_one({"_id": id}, new_values)
+        return result.acknowledged
+    
+    def delete_hero(self, id : ObjectId):
+        result = self.collection.delete_one({"_id": id})
+        return result.acknowledged
